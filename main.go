@@ -126,7 +126,6 @@ func (p *Process) invokeMutualExclusion() {
 	p.mySequenceNumberMutex.Unlock()
 	//empty LRQ
 	p.LRQMutex.Lock()
-	//remove all from LRQ
 	for p.LRQ.Len() > 0 {
 		heap.Pop(&p.LRQ)
 	}
@@ -271,7 +270,6 @@ func (p *Process) receiveFlush(request Request) {
 	p.RVMutex.Unlock()
 	p.LRQMutex.Lock()
 	for p.LRQ.Len() > 0 {
-		//TODO: check if this is correct
 		//Remove all requests from LRQ that have priority greater than or equal to last request satisfied
 		HighestPriorityRequest := heap.Pop(&p.LRQ).(Request)
 		if !(getGreaterPriorityRequest(HighestPriorityRequest, request) == HighestPriorityRequest || (HighestPriorityRequest.Pi == request.Pi && HighestPriorityRequest.SN == request.SN)) {
