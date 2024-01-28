@@ -7,7 +7,8 @@ import (
 	"time"
 )
 
-const N = 8 // Number of processes
+const N = 3 // Number of processes
+const secondsToAwaitPerProcess = 3
 
 type Message struct {
 	SN int // Sequence Number
@@ -21,6 +22,9 @@ type Request struct {
 //Priority queue implementation for requests
 
 type PriorityQueue []Request
+
+var messagesExchanged int = 0
+var messagesExchangedMutex = sync.Mutex{}
 
 func (pq PriorityQueue) Len() int { return len(pq) }
 
@@ -148,6 +152,9 @@ func (p *Process) invokeMutualExclusion() {
 }
 func (p *Process) sendRequest(destination int, request Request) {
 	//fmt.Printf("Process %d is sending request to process %d\n", p.id, destination)
+	messagesExchangedMutex.Lock()
+	messagesExchanged++
+	messagesExchangedMutex.Unlock()
 	processes[destination].requestChan <- request
 }
 
@@ -189,6 +196,9 @@ func (p *Process) receiveRequest(req Request) {
 
 func (p *Process) sendReply(destination int, lastRequestSatisfied Request) {
 	//fmt.Printf("Process %d is sending reply to process %d\n", p.id, destination)
+	messagesExchangedMutex.Lock()
+	messagesExchanged++
+	messagesExchangedMutex.Unlock()
 	processes[destination].replyChan <- lastRequestSatisfied
 }
 
@@ -277,6 +287,9 @@ func (p *Process) receiveFlush(request Request) {
 
 func (p *Process) sendFlush(destination int, request Request) {
 	//fmt.Printf("Process %d is sending flush to process %d\n", p.id, destination)
+	messagesExchangedMutex.Lock()
+	messagesExchanged++
+	messagesExchangedMutex.Unlock()
 	processes[destination].flushChan <- request
 }
 
@@ -340,5 +353,6 @@ func main() {
 	}
 
 	// wait for all processes to finish executing critical section; timer strictly for demo purposes
-	time.Sleep(60 * time.Second)
+	time.Sleep(N * secondsToAwaitPerProcess * time.Second)
+	fmt.Printf("Total messages exchanged: %d\n", messagesExchanged)
 }
