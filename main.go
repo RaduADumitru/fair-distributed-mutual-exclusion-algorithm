@@ -18,14 +18,6 @@ type Request struct {
 	Message
 }
 
-//type Reply struct {
-//	Message
-//}
-//
-//type Flush struct {
-//	Message
-//}
-
 //Priority queue implementation for requests
 
 type PriorityQueue []Request
@@ -111,8 +103,6 @@ func (p *Process) initialize() {
 
 func (p *Process) invokeMutualExclusion() {
 	//fmt.Printf("Process %d is invoking mutual exclusion\n", p.id)
-	//p.requestingMutex.Lock()
-	//defer p.requestingMutex.Unlock()
 	p.requestingMutex.Lock()
 	p.requesting = true
 	p.requestingMutex.Unlock()
@@ -158,20 +148,7 @@ func (p *Process) invokeMutualExclusion() {
 }
 func (p *Process) sendRequest(destination int, request Request) {
 	//fmt.Printf("Process %d is sending request to process %d\n", p.id, destination)
-	////TODO: keep this way of tracking if process is requesting?
-	//p.requestingMutex.Lock()
-	//p.requesting = true
-	//p.requestingMutex.Unlock()
-	//TODO: keep this async?
-
-	//var wg2 sync.WaitGroup
-	//wg2.Add(1)
-	//go processes[destination].receiveRequest(request, &wg2)
-	//wg2.Wait()
 	processes[destination].requestChan <- request
-	//p.requestingMutex.Lock()
-	//p.requesting = false
-	//p.requestingMutex.Unlock()
 }
 
 func (p *Process) receiveRequest(req Request) {
@@ -179,10 +156,6 @@ func (p *Process) receiveRequest(req Request) {
 	p.highestSNMutex.Lock()
 	p.highestSequenceNumber = max(p.highestSequenceNumber, req.SN)
 	p.highestSNMutex.Unlock()
-
-	//comment?
-	//p.requestingMutex.Lock()
-	//defer p.requestingMutex.Unlock()
 
 	p.requestingMutex.Lock()
 	if p.requesting {
@@ -227,8 +200,6 @@ func (p *Process) receiveReply(lastRequestSatisfied Request) {
 	// Remove all requests from LRQ that have priority greater than or equal to request
 	p.LRQMutex.Lock()
 	for p.LRQ.Len() > 0 {
-		//TODO: check if this is correct
-		//Remove all requests from LRQ that have priority greater than or equal to last request satisfied
 		HighestPriorityRequest := heap.Pop(&p.LRQ).(Request)
 		if !(getGreaterPriorityRequest(HighestPriorityRequest, lastRequestSatisfied) == HighestPriorityRequest || (HighestPriorityRequest.Pi == lastRequestSatisfied.Pi && HighestPriorityRequest.SN == lastRequestSatisfied.SN)) {
 			heap.Push(&p.LRQ, HighestPriorityRequest)
@@ -245,15 +216,8 @@ func (p *Process) executeCriticalSection() {
 	p.requestingMutex.Lock()
 	p.requesting = false
 	p.requestingMutex.Unlock()
-	//p.executingCSMutex.Lock()
-	//p.executingCS = true
-	//p.executingCSMutex.Unlock()
 	fmt.Printf("Process %d is executing critical section\n", p.id)
 	time.Sleep(2 * time.Second) // Simulating critical section execution
-	//TODO: keep?
-	//p.executingCSMutex.Lock()
-	//p.executingCS = false
-	//p.executingCSMutex.Unlock()
 	p.finishCriticalSection()
 }
 
@@ -295,7 +259,6 @@ func (p *Process) receiveFlush(request Request) {
 	p.RVMutex.Lock()
 	p.RV[request.Pi] = true
 	p.RVMutex.Unlock()
-	// Remove all requests from LRQ that have priority greater than or equal to request
 	p.LRQMutex.Lock()
 	for p.LRQ.Len() > 0 {
 		//TODO: check if this is correct
@@ -323,7 +286,6 @@ func (p *Process) checkExecuteCS() bool {
 	for k := range p.RV {
 		if !p.RV[k] {
 			p.RVMutex.Unlock()
-			//fmt.Printf("Process %d cannot execute CS because of false RV value\n", p.id)
 			return false
 		}
 	}
@@ -331,13 +293,10 @@ func (p *Process) checkExecuteCS() bool {
 
 	p.LRQMutex.Lock()
 	if len(p.LRQ) > 0 && p.LRQ[0].Pi == p.id {
-		//fmt.Printf("Process %d can execute CS\n", p.id)
 		p.LRQMutex.Unlock()
 		return true
 	}
 	p.LRQMutex.Unlock()
-
-	//fmt.Printf("Process %d cannot execute CS because of incorrect LRQ value\n", p.id)
 	return false
 }
 
@@ -362,7 +321,6 @@ func main() {
 	// Simulate invocation of critical section for all processes
 	for i := 0; i < N; i++ {
 		go processes[i].invokeMutualExclusion()
-		//time.Sleep(1 * time.Second)
 	}
 	for i := 0; i < N; i++ {
 		//continuously process requests sent through these channels, in order of receiving
