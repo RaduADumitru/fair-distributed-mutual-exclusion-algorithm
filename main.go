@@ -23,7 +23,7 @@ type Request struct {
 
 type PriorityQueue []Request
 
-var messagesExchanged int = 0
+var messagesExchanged = 0
 var messagesExchangedMutex = sync.Mutex{}
 
 func (pq PriorityQueue) Len() int { return len(pq) }
@@ -332,6 +332,7 @@ func main() {
 	// Simulate invocation of critical section for all processes
 	for i := 0; i < N; i++ {
 		go processes[i].invokeMutualExclusion()
+		time.Sleep(10 * time.Millisecond)
 	}
 	for i := 0; i < N; i++ {
 		//continuously process requests sent through these channels, in order of receiving
