@@ -236,20 +236,19 @@ func (p *Process) finishCriticalSection() {
 	p.LastRequestMutex.Lock()
 	p.LastRequestSatisfied = p.currentRequest
 	p.currentRequestMutex.Unlock()
-	LRQcopy := PriorityQueue{}
-	heap.Init(&LRQcopy)
+	LRQcopy := make([]Request, len(p.LRQ))
 	p.LRQMutex.Lock()
 	//send flush to next request in LRQ other than itself
 	for p.LRQ.Len() > 0 {
 		nextRequest := heap.Pop(&p.LRQ).(Request)
-		LRQcopy.Push(nextRequest)
+		LRQcopy = append(LRQcopy, nextRequest)
 		if !(nextRequest.Pi == p.id && nextRequest.SN == p.LastRequestSatisfied.SN) {
 			p.sendFlush(nextRequest.Pi, p.LastRequestSatisfied)
 			break
 		}
 	}
-	for LRQcopy.Len() > 0 {
-		heap.Push(&p.LRQ, heap.Pop(&LRQcopy))
+	for _, request := range LRQcopy {
+		heap.Push(&p.LRQ, request)
 	}
 
 	p.LRQMutex.Unlock()
